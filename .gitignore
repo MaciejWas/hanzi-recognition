@@ -10,4 +10,5 @@ test_data
 test_dataset.pickle
 test.py
 train_data
+testing.pickle
 hanzi
