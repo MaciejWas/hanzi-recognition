@@ -1,12 +1,6 @@
-"""
-Implementation of AlexNet, from paper
-"ImageNet Classification with Deep Convolutional Neural Networks" by Alex Krizhevsky et al.
-See: https://papers.nips.cc/paper/4824-imagenet-classification-with-deep-convolutional-neural-networks.pdf
-"""
 import os, sys
 import pickle
 import torch
-import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
 from torch.utils import data
@@ -14,6 +8,8 @@ from tensorboardX import SummaryWriter
 from custom_dataset import RadicalsDataset, CharacterTransform, e
 #from accuracy_metric import average_misclassified_radicals
 import numpy as np
+from alexnet import AlexNet
+
 
 # define pytorch device - useful for device-agnostic execution
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -23,8 +19,6 @@ print('cuda:', torch.cuda.is_available())
 
 try:
     radical = sys.argv[1]
-    print(radical)
-    print(e.rads)
     if sys.argv[1] in e.rads:
         print(' --- Training network for detecring radical', radical, '---')
     else:
@@ -36,7 +30,7 @@ except IndexError:
 
 RADICAL = sys.argv[1]
 NUM_EPOCHS = 90  # original paper
-BATCH_SIZE = 2
+BATCH_SIZE = 1
 MOMENTUM = 0.9
 LR_DECAY = 0.0005
 LR_INIT = 0.01
@@ -44,81 +38,14 @@ IMAGE_DIM = 227  # pixels
 DEVICE_IDS = [0]  # GPUs to use
 # modify this to point to your data directory
 INPUT_ROOT_DIR = None
-OUTPUT_DIR = 'alexnet_data_out'
-LOG_DIR = OUTPUT_DIR + '/tblogs'  # tensorboard logs
-CHECKPOINT_DIR = OUTPUT_DIR + '/models'  # model checkpoints
+OUTPUT_DIR = os.path.join('alexnet_data_out', RADICAL)
+LOG_DIR = os.path.join(OUTPUT_DIR, 'tblogs')  # tensorboard logs
+CHECKPOINT_DIR = os.path.join(OUTPUT_DIR, 'models')  # model checkpoints
 
 # make checkpoint path directory
 os.makedirs(CHECKPOINT_DIR, exist_ok=True)
-
-
-class AlexNet(nn.Module):
-    """
-    Neural network model consisting of layers propsed by AlexNet paper.
-    """
-    def __init__(self):
-        """
-        Define and allocate layers for this neural net.
-        Args:
-            num_classes (int): number of classes to predict with this model
-        """
-        super().__init__()
-        """
-        Define and allocate layers for this neural net.
-        Args:
-            num_classes (int): number of classes to predict with this model
-        """
-        super().__init__()
-        # input size should be : (b x 3 x 227 x 227)
-        # The image in the original paper states that width and height are 224 pixels, but
-        # the dimensions after first convolution layer do not lead to 55 x 55.
-        self.net = nn.Sequential(
-            nn.Conv2d(in_channels=1, out_channels=96, kernel_size=11, stride=4),  # (b x 96 x 55 x 55)
-            nn.ReLU(),
-            nn.LocalResponseNorm(size=5, alpha=0.0001, beta=0.75, k=2),  # section 3.3
-            nn.MaxPool2d(kernel_size=3, stride=2),  # (b x 96 x 27 x 27)
-            nn.Conv2d(96, 256, 5, padding=2),  # (b x 256 x 27 x 27)
-            nn.ReLU(),
-            nn.LocalResponseNorm(size=5, alpha=0.0001, beta=0.75, k=2),
-            nn.MaxPool2d(kernel_size=3, stride=2),  # (b x 256 x 13 x 13)
-            nn.Conv2d(256, 384, 3, padding=1),  # (b x 384 x 13 x 13)
-            nn.ReLU(),
-            nn.Conv2d(384, 384, 3, padding=1),  # (b x 384 x 13 x 13)
-            nn.ReLU(),
-            nn.Conv2d(384, 256, 3, padding=1),  # (b x 256 x 13 x 13)
-            nn.ReLU(),
-            nn.MaxPool2d(kernel_size=3, stride=2),  # (b x 256 x 6 x 6)
-            )
-
-        # classifier is just a name for linear layers
-        self.classifier = nn.Sequential(
-            nn.Dropout(p=0.35, inplace=True),
-            nn.Linear(in_features=(256 * 6 * 6), out_features=4096),
-            nn.ReLU(),
-            nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=4096, out_features=4096),
-            nn.ReLU(),
-            nn.Linear(in_features=4096, out_features=1),
-        )
-        self.init_bias()  # initialize bias
-
-    def init_bias(self):
-        for layer in self.net:
-            if isinstance(layer, nn.Conv2d):
-                nn.init.normal_(layer.weight, mean=0, std=0.01)
-                nn.init.constant_(layer.bias, 0)
-        # original paper = 1 for Conv2d layers 2nd, 4th, and 5th conv layers
-        nn.init.constant_(self.net[4].bias, 1)
-        nn.init.constant_(self.net[10].bias, 1)
-        nn.init.constant_(self.net[12].bias, 1)
-
-    def forward(self, x):
-        x = self.net(x)
-        #print(x.shape)
-        x = x.view(-1, 256 * 6 * 6)  # reduce the dimensions for linear layer input
-        x = self.classifier(x)
-        #test = x.cpu().detach().numpy()
-        return x
+os.makedirs(LOG_DIR, exist_ok=True)
+os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 if __name__ == '__main__':
     # print the seed value
@@ -130,9 +57,10 @@ if __name__ == '__main__':
 
     # create model
     alexnet = AlexNet().to(device)
+    
     # train on multiple GPUs
     alexnet = torch.nn.parallel.DataParallel(alexnet, device_ids=DEVICE_IDS)
-    print(alexnet)
+
     print('AlexNet created')
     
     # ------ Loading dataset for radical detection ------
@@ -198,12 +126,12 @@ if __name__ == '__main__':
             
             print('after alexnet:', output.shape)
             loss = criterion(output, classes)
-    
+            print('went through loss') 
             # update the parameters
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
-   
+            print('theoretically all good') 
             # log the information and add to tensorboard
             if total_steps % 10 == 0:
                 with torch.no_grad():

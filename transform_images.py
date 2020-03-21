@@ -45,6 +45,8 @@ if __name__ == '__main__':
             filepath = os.path.join(directory, char, f)
             print(f'transforming {filepath}', end='\r')
             img = Image.open(filepath)
+            if np.array(img).shape != (110, 110)
+              assert 1==0  
             if np.array(img).mean() < 165:
                 continue
             else:
