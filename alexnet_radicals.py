@@ -1,6 +1,7 @@
 import os, sys
 import pickle
 import torch
+from torch import nn
 import torch.optim as optim
 import torch.nn.functional as F
 from torch.utils import data
@@ -8,14 +9,12 @@ from tensorboardX import SummaryWriter
 from custom_dataset import RadicalsDataset, CharacterTransform, e
 #from accuracy_metric import average_misclassified_radicals
 import numpy as np
-from alexnet import AlexNet
+from alexnet import AlexNet, balanced_loss 
 
 
 # define pytorch device - useful for device-agnostic execution
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print('cuda:', torch.cuda.is_available())
-
-# define model parameters
 
 try:
     radical = sys.argv[1]
@@ -30,8 +29,8 @@ except IndexError:
 
 RADICAL = sys.argv[1]
 NUM_EPOCHS = 90  # original paper
-BATCH_SIZE = 1
-MOMENTUM = 0.9
+BATCH_SIZE = 512
+MOMENTUM = 0.5
 LR_DECAY = 0.0005
 LR_INIT = 0.01
 IMAGE_DIM = 227  # pixels
@@ -91,12 +90,14 @@ if __name__ == '__main__':
     dataloader = data.DataLoader(
         dataset,
         shuffle=True,
-        batch_size=BATCH_SIZE
+        batch_size=BATCH_SIZE,
+        num_workers=6
             )
     test_dataloader = data.DataLoader(
         test_dataset,
         shuffle=False,
-        batch_size=BATCH_SIZE
+        batch_size=BATCH_SIZE,
+        num_workers=6
             )
 
     print('Dataloader created')
@@ -107,7 +108,9 @@ if __name__ == '__main__':
 
     # multiply LR by 1 / 10 after every 30 epochs
     lr_scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=30, gamma=0.1)
-    criterion = nn.BCEWithLogitsLoss()
+    criterion = nn.BCEWithLogitsLoss(
+            torch.tensor([1, 20]).to(device)
+            )
     #criterion = nn.CrossEntropyLoss()
     #criterion = nn.MultiLabelMarginLoss()
     print('LR Scheduler created')
@@ -119,29 +122,26 @@ if __name__ == '__main__':
             imgs = batch['img']
             classes = batch['label']
 
-            print('loaded:', imgs.shape, classes.shape)
-
             imgs, classes = imgs.to(device), classes.to(device)
             output = alexnet(imgs)
-            
-            print('after alexnet:', output.shape)
-            loss = criterion(output, classes)
-            print('went through loss') 
-            # update the parameters
+            #print(output.cpu()) 
+            #loss = F.binary_cross_entropy(output, classes)
+
+            loss = balanced_loss(output, classes)
             optimizer.zero_grad()
+            
             loss.backward()
             optimizer.step()
-            print('theoretically all good') 
-            # log the information and add to tensorboard
+            
             if total_steps % 10 == 0:
                 with torch.no_grad():
                     preds = output > .5
                     accuracy = torch.sum(preds == classes)
-
+                    print('accuracy:', accuracy)
                     print('Epoch: {} \tStep: {} \tLoss: {:.4f} \tAcc: {}'
-                        .format(epoch + 1, total_steps, loss.item(), accuracy))
+                        .format(epoch + 1, total_steps, loss.item(), accuracy.item()))
                     tbwriter.add_scalar('loss', loss.item(), total_steps)
-                    tbwriter.add_scalar('accuracy', accuracy, total_steps)
+                    tbwriter.add_scalar('accuracy', accuracy.item(), total_steps)
 
             # print out gradient values and parameter average values
             if total_steps % 100 == 0:

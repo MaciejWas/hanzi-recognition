@@ -65,7 +65,7 @@ class CharacterTransform(object):
         img = from_numpy(img).float()
         
         sample['label'] = from_numpy(label).float()
-        sample['img'] = interpolate(img.reshape(1,1,110,110), scale_factor=2.07, mode='bilinear').reshape(1, 227, 227)
+        sample['img'] = interpolate(img.reshape(1,1,110,110), scale_factor=2.07, mode='bilinear', align_corners=True).reshape(1, 227, 227)
         
         return sample
 

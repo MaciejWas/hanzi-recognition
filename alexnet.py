@@ -1,4 +1,7 @@
 from torch import nn
+from torch import ones_like
+import numpy as np
+
 
 class AlexNet(nn.Module):
     def __init__(self):
@@ -30,6 +33,7 @@ class AlexNet(nn.Module):
             nn.Linear(in_features=4096, out_features=4096),
             nn.ReLU(),
             nn.Linear(in_features=4096, out_features=1),
+            nn.Sigmoid()
         )
         self.init_bias()  # initialize bias
 
@@ -48,4 +52,17 @@ class AlexNet(nn.Module):
         x = x.view(-1, 256 * 6 * 6)  # reduce the dimensions for linear layer input
         x = self.classifier(x)
         return x
+
+
+def balanced_loss(outputs, target):
+    target_np = target.cpu().numpy()
+    n = len(target_np)
+    not_present = np.sum(target_np == 0)
+    present = np.sum(target_np == 1)
+    ratio = present/not_present
+    print(ratio)
+    weight_rebal = ones_like(target) * ratio  +  (1.0 - ratio) * target
+
+    return  nn.functional.binary_cross_entropy(outputs, target, weight_rebal)
+
 
