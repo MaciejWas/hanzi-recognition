@@ -2,3 +2,7 @@ train_data
 test_data
 testing.pickle
 dataset.pickle
+.dict_file_test.pickle
+.dict_file_train.pickle
+
+
