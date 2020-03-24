@@ -15,13 +15,16 @@ e = RadicalOneHotEncoder(get_all_radicals())
 class RadicalsDataset(Dataset):
     """Character to radicals dataset."""
 
-    def __init__(self, train=True, transform=None, radical=None, dict_file='dict_file.pickle'):
+    def __init__(self, train=True, transform=None, radical=None):
         self.directory = 'train_data' if train else 'test_data'
         self.transform = transform
         self.radical = radical
         char_files = [(name[-1], files) for name, _, files in os.walk(self.directory)][1:]
         
-        if dict_file not in os.listdir():
+        mode = 'train' if train else 'test'
+        dict_ = f'dict_file_{mode}.pickle'
+
+        if dict_ not in os.listdir():
             self.file_to_char = {}
             last = len(char_files)
             print('Creating file -> char dict')
@@ -30,11 +33,11 @@ class RadicalsDataset(Dataset):
                 for f in files:
                     self.file_to_char[f] = char
 
-            with open('dict_file.pickle', 'wb') as f:
-                f.dump(self.file_to_char)
+            with open(dict_, 'wb') as f:
+                pickle.dump(self.file_to_char, f)
 
         else:
-            with open('dict_file', 'rb') as f:
+            with open(dict_, 'rb') as f:
                 self.file_to_char = pickle.load(f)
 
         print('Done initializing class.')
@@ -52,7 +55,7 @@ class RadicalsDataset(Dataset):
         name = str(idx) + '.png' 
         char = self.file_to_char[name]
         img = io.imread(os.path.join(self.directory, char, name))
-        label = self.radical in e.parital_decode(e.encode(char))
+        label = self.radical in e.partial_decode(e.encode(char))
 
         sample = {'char': char,
                   'img': img,
@@ -67,6 +70,7 @@ class RadicalsDataset(Dataset):
 class CharacterTransform(object):
     def __init__(self):
         pass
+
     def __call__(self, sample):
         img, label = sample['img'], sample['label']
         img = (img - 30) / 50
