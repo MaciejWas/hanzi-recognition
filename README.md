@@ -24,3 +24,10 @@ licensed under Apache 2.0 License,
 as well as **Imbalanced Data Sampler**:
 https://github.com/ufoym/imbalanced-dataset-sampler
 licensed under MIT License.
+
+## How to run
+To start, you don't have to manually download anything outside this repository, except for python libraries listed in *requirements.txt*.
+#### Run in this order:
+##### get_dataset.py -> unpack_images.py -> label_images.py -> custom_dataset.py
+After you do, every file needed should be in the hanzi-recognition directory. After unpacking and deleting compressed datasets, size of the dir should be ~**11GB**.
+
