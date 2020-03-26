@@ -1,4 +1,4 @@
-# Handwritten hanzi recognition
+## Chinese character radical detection
 A chinese character is composed of smaller ones called 'radicals'. My aim was to create a NN for detection of radicals (one model, but with different weights for different radicals) in handwritten chinese characters. For this task I used a simplified version of Alexnet and the CASIA dataset of handwritten characters.
 
 ## Dataset
