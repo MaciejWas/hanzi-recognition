@@ -8,7 +8,7 @@ import pickle
 
 def load_gnt_file(filename):
     """
-    Load characters and images from a given GNT file.
+    Loads characters and images from a given GNT file.
     params:
         filename: The file path to load.
     returns:
@@ -35,7 +35,7 @@ def load_chunk(filename):
     return list(load_gnt_file(filename))
 
 def create_category_folders(target):
-    targetdir = to_names[target]
+    targetdir = unloaded_datasets[target]
 
     if 'chars.pickle' in os.listdir():
         with open('chars.pickle', 'rb') as handle:
@@ -55,10 +55,10 @@ def create_category_folders(target):
             )
     return targetdir
 
-from_names = {'train': ['HWDB1.1trn_gnt_P1', 'HWDB1.1trn_gnt_P2', 'competition-gnt'],
+compressed_datasets = {'train': ['HWDB1.1trn_gnt_P1', 'HWDB1.1trn_gnt_P2', 'competition-gnt'],
             'test' : ['HWDB1.1tst_gnt']}
 
-to_names = {'train': 'train_data',
+unloaded_datasets = {'train': 'train_data',
             'test': 'test_data'}
 
 info = """Usage:
@@ -68,20 +68,17 @@ info = """Usage:
 
 
 if __name__ == '__main__':
-
     try:
         target = sys.argv[1]
-
     except (KeyError, IndexError):
         print(info)
         sys.exit(2)
 
-    
     targetdir = create_category_folders(target)
     print(f'Creating {target} data in {targetdir} directory. It\'s going to take a while.')
 
     n = 0
-    for dir_ in from_names[target]:
+    for dir_ in compressed_datasets[target]:
         all_gnt_files = os.listdir(
                 os.path.join('data', dir_)
                 )

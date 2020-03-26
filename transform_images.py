@@ -5,7 +5,7 @@ import os, sys
 width, height = 110, 110
 
 def transform(image_pil, width, height):
-    '''Resizes and inverts PIL image keeping ratio.
+    '''Resizes and inverts PIL image while keeping image's ratio.
     '''
     ratio_w = width / image_pil.width
     ratio_h = height / image_pil.height
@@ -45,10 +45,11 @@ if __name__ == '__main__':
             filepath = os.path.join(directory, char, f)
             print(f'transforming {filepath}', end='\r')
             img = Image.open(filepath)
+
             if np.array(img).shape != (110, 110)
                 img_transformed = transform(img, width, height)
                 img_transformed.save(filepath)  
-            elif np.array(img).mean() < 165:
+            elif np.array(img).mean() < 165: # Checks if image is inverted
                 continue
             else:
                 img_transformed = transform(img, width, height)

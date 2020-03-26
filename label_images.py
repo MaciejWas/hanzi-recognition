@@ -1,5 +1,5 @@
 # In order to succesfully create labels for examples, you must have
-# previously ran get_statistics.py and create_images.py (in this order).
+# previously ran get_dataset.py and unpack_images.py (in this order).
 # the data foler should look like this:
 # /training_data
 #      | - training_data/一/ (examples)
@@ -27,6 +27,7 @@ redundant = ['⿰','⿱','⿲','⿳','⿴','⿵','⿶','⿷','⿸','⿹','⿺','
 def create_simplified_IDS():
     if 'IDS_dictionary_simp.txt' in os.listdir():
         return None
+
     with open('IDS_dictionary.txt', 'r') as f:
         lines = f.read().split('\n')[:-1]
 
@@ -40,7 +41,7 @@ def create_simplified_IDS():
     print('Created simplified IDS file')
 
 def find_example_n(directory):
-    n=0
+    n = 0
     for subdir in os.listdir(directory):
         files_in_dir = len(
             os.listdir(os.path.join(directory, subdir))
@@ -117,7 +118,7 @@ class RadicalOneHotEncoder:
 
     def partial_decode(self, label):
         mask = label == 1
-        return self.rads[mask]  
+        return self.rads[mask]
 
 info = """Usage:
 $ python3 create_labels.py test
@@ -126,14 +127,10 @@ $ python3 create_labels.py train"""
 
 
 if __name__ == '__main__':
-    if len(sys.argv) == 1:
+    try:
+        directory = {'train': 'train_data', 'test': 'test_data'}[sys.argv[1]]
+    except (IndexError, KeyError):
         print(info)
-        sys.exit(1)
-    elif sys.argv[1] not in ['train', 'test']:
-        print(info)
-        sys.exit(1)
-
-    directory = {'train': 'train_data', 'test': 'test_data'}[sys.argv[1]]
 
     create_simplified_IDS()
     n_examples = find_example_n(directory)

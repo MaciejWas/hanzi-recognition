@@ -19,15 +19,14 @@ class RadicalsDataset(Dataset):
         self.directory = 'train_data' if train else 'test_data'
         self.transform = transform
         self.radical = radical
-        char_files = [(name[-1], files) for name, _, files in os.walk(self.directory)][1:]
-        
+        char_files = [(name[-1], files) for name, _, files in os.walk(self.directory)][1:] 
         mode = 'train' if train else 'test'
         dict_ = f'dict_file_{mode}.pickle'
 
         if dict_ not in os.listdir():
             self.file_to_char = {}
             last = len(char_files)
-            print('Creating file -> char dict')
+            print('Creating file -> char dict.')
             for i, (char, files) in enumerate(char_files):
                 print(f'{i} / {last}', end='\r')
                 for f in files:
@@ -40,7 +39,7 @@ class RadicalsDataset(Dataset):
             with open(dict_, 'rb') as f:
                 self.file_to_char = pickle.load(f)
 
-        print('Done initializing class.')
+        print('Done initializing Dateset.')
 
 
     def __len__(self):

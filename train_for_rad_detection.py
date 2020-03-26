@@ -12,8 +12,6 @@ from models import Model, balanced_loss
 
 
 def train_model(radical):
-
-    # define pytorch device - useful for device-agnostic execution
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print('cuda:', torch.cuda.is_available())
 
@@ -23,11 +21,10 @@ def train_model(radical):
     BATCH_SIZE = 512
     MOMENTUM = 0.9
     LR_DECAY = 0.0005
-    OUTPUT_DIR = os.path.join('alexnet_data_out', RADICAL)
+    OUTPUT_DIR = os.path.join('data_out', RADICAL)
     LOG_DIR = os.path.join(OUTPUT_DIR, 'tblogs')  
     CHECKPOINT_DIR = os.path.join(OUTPUT_DIR, 'models')  
 
-    # make checkpoint path directory
     os.makedirs(CHECKPOINT_DIR, exist_ok=True)
     os.makedirs(LOG_DIR, exist_ok=True)
     os.makedirs(OUTPUT_DIR, exist_ok=True) 
@@ -35,12 +32,11 @@ def train_model(radical):
     tbwriter = SummaryWriter(log_dir=LOG_DIR)
     print('TensorboardX summary writer created')
 
-    # create model
     model = Model()
     
     if WARM:
         try:
-            model.load_state_dict(torch.load('alexnet_data_out/火/models/model火_at_state16.pkl'), strict=False)
+            model.load_state_dict(torch.load('data_out/火/models/model火_at_state16.pkl'), strict=False)
             print('Warm start with 火-model.')
         except:
             print('Unable to load previous model for warm start. Continuing with random weights.')
@@ -91,8 +87,9 @@ def train_model(radical):
     criterion = nn.BCEWithLogitsLoss()
     print('LR Scheduler created')
 
-    print('Starting training...')
+    #   ------  Training loop   ------
 
+    print('Starting training...')
     max_steps = 2200
     total_steps = 1
     good_recall = 0
@@ -121,7 +118,7 @@ def train_model(radical):
                         print('Epoch: {} \tStep: {} \tLoss: {:.4f} \tAcc: {}, \tRec: {}'
                             .format(epoch + 1, total_steps, loss.item(), accuracy, recall))
                     except ZeroDivisionError:
-                        print(f'No examples of {RADICAL} in this batch')
+                        print(f'No examples of {RADICAL} in this batch.')
                         recall = 1
                         print('Epoch: {} \tStep: {} \tLoss: {:.4f} \tAcc: {}'
                             .format(epoch + 1, total_steps, loss.item(), accuracy))
@@ -130,23 +127,6 @@ def train_model(radical):
                     tbwriter.add_scalar('accuracy', accuracy, total_steps)
                     tbwriter.add_scalar('recall', recall, total_steps)
 
-            if total_steps % 100 == 0:
-                with torch.no_grad():
-                    print('*' * 10)
-                    for name, parameter in model.named_parameters():
-                        if parameter.grad is not None:
-                            avg_grad = torch.mean(parameter.grad)
-                            print('\t{} - grad_avg: {}'.format(name, avg_grad))
-                    
-                            tbwriter.add_scalar('grad_avg/{}'.format(name), avg_grad.item(), total_steps)
-                            tbwriter.add_histogram('grad/{}'.format(name),
-                                    parameter.grad.cpu().numpy(), total_steps)
-                        if parameter.data is not None:
-                            avg_weight = torch.mean(parameter.data)
-                            print('\t{} - param_avg: {}'.format(name, avg_weight))
-                            tbwriter.add_histogram('weight/{}'.format(name),
-                                    parameter.data.cpu().numpy(), total_steps)
-                            tbwriter.add_scalar('weight_avg/{}'.format(name), avg_weight.item(), total_steps)
             if total_steps % 500 == 0:
                 with torch.no_grad():
                     print('Evaluating on 20 random batches from testing data.')
@@ -168,14 +148,15 @@ def train_model(radical):
                         except ZeroDivisionError:
                             print(f'No examples of {RADICAL} this testing batch.')
                             recall = 1
-                            print('test accurady:', accuracy)
+                            print('test accuracy:', accuracy)
 
                         tbwriter.add_scalar('test_loss', loss.item(), total_steps)
                         tbwriter.add_scalar('test_accuracy', accuracy, total_steps)
                         tbwriter.add_scalar('test_recall', recall, total_steps)
                         
                         good_recall += 1 if recall > 0.92 else 0
-                        if good_recall >= 19 and epoch >= 2:
+                        
+                        if good_recall >= 18 and epoch >= 2:
                             checkpoint_path = os.path.join(CHECKPOINT_DIR, f'model{RADICAL}_at_state{total_steps}.pkl')
                             state = {
                                 'epoch': epoch,
@@ -190,9 +171,10 @@ def train_model(radical):
                             good_recall = 0
                             break
             total_steps += 1
-        lr_scheduler.step()
 
-    # save weak model
+        lr_scheduler.step()
+    
+    # ------ Saving model ------
     checkpoint_path = os.path.join(CHECKPOINT_DIR, f'model{RADICAL}_at_state{total_steps}.pkl')
     state = {
         'epoch': epoch,

@@ -21,7 +21,6 @@ sizes = {} # keys are tuples of (width, height), values are numbers of images
 characters = {} # keys are chinese characters, values are numbers of their occurences
 
 if __name__ == '__main__':
-
     generator = chain(training_pairs_generator, testing_pairs_gen)
     
     if 'sizes.pickle' in os.listdir():
@@ -41,11 +40,12 @@ if __name__ == '__main__':
             characters[char] = 1
         else:
             characters[char] += 1
+
     print(f'Total characters processed: {i}')
 
     with open('sizes.pickle', 'wb') as handle:
-        pickle.dump(sizes, handle, protocol=pickle.HIGHEST_PROTOCOL)
+        pickle.dump(sizes, handle)
 
     with open('chars.pickle', 'wb') as handle:
-        pickle.dump(characters, handle, protocol=pickle.HIGHEST_PROTOCOL)
+        pickle.dump(characters, handle)
 
