@@ -11,8 +11,9 @@ http://www.nlpr.ia.ac.cn/databases/handwriting/Home.html
 
 ## Results
 Below is a chart of accuracy and recall on training data over number of batches. Size of training batch in this case was 512, and the model was training for recognizing radical 耳.
-
+#### Accuracy
 ![alt text](readme_images/accuracy.svg "accuracy score")
+#### Recall
 ![alt text](readme_images/recall.svg "recall score")
 
 ## PyCasia
