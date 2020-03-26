@@ -7,38 +7,30 @@ import torch.nn.functional as F
 from torch.utils import data
 from tensorboardX import SummaryWriter
 from custom_dataset import RadicalsDataset, CharacterTransform, e, ImbalancedDatasetSampler
-#from accuracy_metric import average_misclassified_radicals
 import numpy as np
 from models import Model, balanced_loss 
 
 
-# define pytorch device - useful for device-agnostic execution
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-print('cuda:', torch.cuda.is_available())
+def train_model(radical):
 
+    # define pytorch device - useful for device-agnostic execution
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    print('cuda:', torch.cuda.is_available())
 
-assert sys.argv[1] in e.rads
+    RADICAL = radical
+    WARM = True
+    NUM_EPOCHS = 3  
+    BATCH_SIZE = 512
+    MOMENTUM = 0.9
+    LR_DECAY = 0.0005
+    OUTPUT_DIR = os.path.join('alexnet_data_out', RADICAL)
+    LOG_DIR = os.path.join(OUTPUT_DIR, 'tblogs')  
+    CHECKPOINT_DIR = os.path.join(OUTPUT_DIR, 'models')  
 
-WARM = True
-RADICAL = sys.argv[1]
-NUM_EPOCHS = 3  # original paper
-BATCH_SIZE = 512
-MOMENTUM = 0.9
-LR_DECAY = 0.0005
-IMAGE_DIM = 227  # pixels
-DEVICE_IDS = [0]  # GPUs to use
-# modify this to point to your data directory
-INPUT_ROOT_DIR = None
-OUTPUT_DIR = os.path.join('alexnet_data_out', RADICAL)
-LOG_DIR = os.path.join(OUTPUT_DIR, 'tblogs')  # tensorboard logs
-CHECKPOINT_DIR = os.path.join(OUTPUT_DIR, 'models')  # model checkpoints
-
-# make checkpoint path directory
-os.makedirs(CHECKPOINT_DIR, exist_ok=True)
-os.makedirs(LOG_DIR, exist_ok=True)
-os.makedirs(OUTPUT_DIR, exist_ok=True)
-
-if __name__ == '__main__':
+    # make checkpoint path directory
+    os.makedirs(CHECKPOINT_DIR, exist_ok=True)
+    os.makedirs(LOG_DIR, exist_ok=True)
+    os.makedirs(OUTPUT_DIR, exist_ok=True) 
 
     tbwriter = SummaryWriter(log_dir=LOG_DIR)
     print('TensorboardX summary writer created')
@@ -75,8 +67,12 @@ if __name__ == '__main__':
         dataset,
         batch_size=BATCH_SIZE,
         num_workers=6,
-        sampler=ImbalancedDatasetSampler(dataset, callback_get_label=lambda dataset, idx: dataset.__getitem__(idx)['label'])
-            ) 
+        sampler=ImbalancedDatasetSampler(
+            dataset,
+            callback_get_label=lambda dataset, idx: dataset.__getitem__(idx)['label']
+                )
+            )
+
     test_dataloader = data.DataLoader(
         test_dataset,
         batch_size=BATCH_SIZE,
@@ -90,7 +86,7 @@ if __name__ == '__main__':
     
     print('Optimizer created')
     
-    lr_scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.5)
+    lr_scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=1, gamma=0.3)
 
     criterion = nn.BCEWithLogitsLoss()
     print('LR Scheduler created')
@@ -99,6 +95,7 @@ if __name__ == '__main__':
 
     max_steps = 2200
     total_steps = 1
+    good_recall = 0
     for epoch in range(NUM_EPOCHS):
         for batch in dataloader:
             imgs = batch['img']
@@ -118,10 +115,16 @@ if __name__ == '__main__':
                 with torch.no_grad():
                     preds = output > 0
                     accuracy = torch.sum(preds == classes).item() / BATCH_SIZE
-                    recall = torch.sum((preds == classes) * (classes == 1)).item() / torch.sum(classes == 1).item()
-
-                    print('Epoch: {} \tStep: {} \tLoss: {:.4f} \tAcc: {}, \tRec: {}'
-                        .format(epoch + 1, total_steps, loss.item(), accuracy, recall))
+                    
+                    try:
+                        recall = torch.sum((preds == classes) * (classes == 1)).item() / torch.sum(classes == 1).item()
+                        print('Epoch: {} \tStep: {} \tLoss: {:.4f} \tAcc: {}, \tRec: {}'
+                            .format(epoch + 1, total_steps, loss.item(), accuracy, recall))
+                    except ZeroDivisionError:
+                        print(f'No examples of {RADICAL} in this batch')
+                        recall = 1
+                        print('Epoch: {} \tStep: {} \tLoss: {:.4f} \tAcc: {}'
+                            .format(epoch + 1, total_steps, loss.item(), accuracy))
                     
                     tbwriter.add_scalar('loss', loss.item(), total_steps)
                     tbwriter.add_scalar('accuracy', accuracy, total_steps)
@@ -144,9 +147,9 @@ if __name__ == '__main__':
                             tbwriter.add_histogram('weight/{}'.format(name),
                                     parameter.data.cpu().numpy(), total_steps)
                             tbwriter.add_scalar('weight_avg/{}'.format(name), avg_weight.item(), total_steps)
-            if total_steps % 500 == 0 or total_steps == 1:
+            if total_steps % 500 == 0:
                 with torch.no_grad():
-                    print('Evaluating on ten random batches from testing data.')
+                    print('Evaluating on 20 random batches from testing data.')
                     for k, batch in enumerate(test_dataloader):
                         imgs = batch['img']
                         classes = batch['label']
@@ -158,14 +161,33 @@ if __name__ == '__main__':
 
                         preds = output > 0
                         accuracy = torch.sum(preds == classes).item() / BATCH_SIZE
-                        recall = torch.sum((preds == classes) * (classes == 1)).item() / torch.sum(classes == 1).item()
-                        print('test accuracy:', accuracy, '\t recall:', recall)
-            
+                        
+                        try:
+                            recall = torch.sum((preds == classes) * (classes == 1)).item() / torch.sum(classes == 1).item()
+                            print('test accuracy:', accuracy, '\t recall:', recall)
+                        except ZeroDivisionError:
+                            print(f'No examples of {RADICAL} this testing batch.')
+                            recall = 1
+                            print('test accurady:', accuracy)
+
                         tbwriter.add_scalar('test_loss', loss.item(), total_steps)
                         tbwriter.add_scalar('test_accuracy', accuracy, total_steps)
                         tbwriter.add_scalar('test_recall', recall, total_steps)
                         
-                        if k == 9:
+                        good_recall += 1 if recall > 0.92 else 0
+                        if good_recall >= 19 and epoch >= 2:
+                            checkpoint_path = os.path.join(CHECKPOINT_DIR, f'model{RADICAL}_at_state{total_steps}.pkl')
+                            state = {
+                                'epoch': epoch,
+                                'total_steps': total_steps,
+                                'optimizer': optimizer.state_dict(),
+                                'model': model.state_dict()
+                            }
+                            torch.save(state, checkpoint_path)
+                            return None
+               
+                        if k == 19:
+                            good_recall = 0
                             break
             total_steps += 1
         lr_scheduler.step()
@@ -179,4 +201,4 @@ if __name__ == '__main__':
         'model': model.state_dict()
     }
     torch.save(state, checkpoint_path)
-    sys.exit(0)
+    return None
