@@ -10,9 +10,10 @@ http://www.nlpr.ia.ac.cn/databases/handwriting/Home.html
 ![alt text](readme_images/collage.png "character collage")
 
 ## Results
-Below is a chart of accuracy on training data over number of batches. Size of training batch in this case was 512, and the model was training for recognizing radical 耳.
+Below is a chart of accuracy and recall on training data over number of batches. Size of training batch in this case was 512, and the model was training for recognizing radical 耳.
 
 ![alt text](readme_images/accuracy.svg "accuracy score")
+![alt text](readme_images/recall.svg "recall score")
 
 ## PyCasia
 I am using a modified version of **PyCasia** python module:
