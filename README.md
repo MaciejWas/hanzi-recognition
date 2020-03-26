@@ -12,10 +12,13 @@ http://www.nlpr.ia.ac.cn/databases/handwriting/Home.html
 ## Results
 Below is a chart of accuracy on training data over number of batches. Size of training batch in this case was 512, and the model was training for recognizing radical 耳.
 
-/home/maciej/Downloads/accuracy.svg/home/maciej/Downloads/accuracy.svg
 ![alt text](readme_images/accuracy.svg "accuracy score")
-<img src="readme_images/accuracy.svg">
 
 ## PyCasia
 I am using a modified version of **PyCasia** python module:
-https://github.com/lucaskjaero/PyCasia,
+https://github.com/lucaskjaero/PyCasia
+licensed under Apache 2.0 License,
+
+as well as **Imbalanced Data Sampler**:
+https://github.com/ufoym/imbalanced-dataset-sampler
+licensed under MIT License.
