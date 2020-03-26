@@ -16,7 +16,7 @@ Below is a chart of accuracy and recall on training data over number of batches.
 #### Recall
 ![alt text](readme_images/recall.svg "recall score")
 
-## PyCasia
+## Licensed modules
 I am using a modified version of **PyCasia** python module:
 https://github.com/lucaskjaero/PyCasia
 licensed under Apache 2.0 License,
