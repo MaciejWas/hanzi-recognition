@@ -10,7 +10,7 @@ http://www.nlpr.ia.ac.cn/databases/handwriting/Home.html
 ![alt text](readme_images/collage.png "character collage")
 
 ## Results
-Below is a chart of accuracy and recall on training data over number of batches. Size of training batch in this case was 512, and the model was training for recognizing radical 耳.
+Below is a chart of accuracy and recall on training data over number of batches. Size of training batch in this case was 512, and the model was training for recognizing radical 耳. Model archieves similar similar values of accuracy and recall for most of radical components, some of them are available in data_out directory.
 #### Accuracy
 ![alt text](readme_images/accuracy.svg "accuracy score")
 #### Recall
