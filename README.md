@@ -1,4 +1,4 @@
-# Handwritten hanzi recognition
+## Chinese character radical detection
 A chinese character is composed of smaller ones called 'radicals'. My aim was to create a NN for detection of radicals (one model, but with different weights for different radicals) in handwritten chinese characters. For this task I used a simplified version of Alexnet and the CASIA dataset of handwritten characters.
 
 ## Dataset
@@ -10,13 +10,13 @@ http://www.nlpr.ia.ac.cn/databases/handwriting/Home.html
 ![alt text](readme_images/collage.png "character collage")
 
 ## Results
-Below is a chart of accuracy and recall on training data over number of batches. Size of training batch in this case was 512, and the model was training for recognizing radical 耳.
+Below is a chart of accuracy and recall on training data over number of batches. Size of training batch in this case was 512, and the model was training for recognizing radical 耳. Model archieves similar similar values of accuracy and recall for most of radical components, some of them are available in data_out directory.
 #### Accuracy
 ![alt text](readme_images/accuracy.svg "accuracy score")
 #### Recall
 ![alt text](readme_images/recall.svg "recall score")
 
-## PyCasia
+## Licensed modules
 I am using a modified version of **PyCasia** python module:
 https://github.com/lucaskjaero/PyCasia
 licensed under Apache 2.0 License,
