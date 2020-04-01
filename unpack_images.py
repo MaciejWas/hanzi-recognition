@@ -1,3 +1,5 @@
+# This script should be run after get_dataset.py
+
 import numpy as np
 import cv2
 import os, sys

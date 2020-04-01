@@ -141,8 +141,10 @@ if __name__ == '__main__':
         np.zeros(shape=(n_examples, len(all_radicals)), dtype=np.int8)
     )
 
-    if f'{sys.argv[1]}_labels' in os.listdir('labels'):
+    if 'labels' in os.listdir():
         input('Labels already there. Continue? CTRL+C to abort.')
+    else:
+        os.mkdir('labels')
 
     for dir in os.listdir(directory):
         examples_in_dir = os.listdir(os.path.join(directory, dir))
@@ -152,7 +154,4 @@ if __name__ == '__main__':
             n = int(n)
             labels[n, :] = encoder.encode(dir)
         
-    if 'labels' not in os.listdir():
-        os.makedirs('labels')
-
     np.savez(f'labels/{sys.argv[1]}_labels', labels)
