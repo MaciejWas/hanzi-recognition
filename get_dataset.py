@@ -1,3 +1,6 @@
+# Run this script first.
+# Will download compressed dataset in ./data directory, as well as create chars.pickle and sizes.pickle.
+
 import numpy as np
 from pycasia.CASIA import CASIA
 import sys, os
@@ -12,7 +15,7 @@ training_generators = [
     dataset_manager.load_dataset('HWDB1.1trn_gnt_P2'),
     dataset_manager.load_dataset('competition-gnt')
 ]
-
+ 
 testing_pairs_gen = dataset_manager.load_dataset('HWDB1.1tst_gnt')
 training_pairs_generator = chain(*[gen for gen in training_generators])
 

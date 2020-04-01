@@ -1,31 +1,38 @@
 import os
-from label_images import *
-from train_for_rad_detection import * 
+from label_images import RadicalOneHotEncoder, get_all_radicals 
+from train_for_rad_detection import train_model
 import shutil
 
-trained_radicals = os.listdir('alexnet_data_out')
+trained_radicals = os.listdir('data_out')
 e = RadicalOneHotEncoder(get_all_radicals())
 
+warm = True
+num_epochs = 4
+batch_size = 512
+
+message = """
+--- --- --- --- --- --- --- --- --- --- --- ---
+
+\t \t xxx training radical {rad}.
+
+--- --- --- --- --- --- --- --- --- --- --- ---"""
+
 for rad in e.rads:
-    message = f""" --- --- --- --- --- ---  --- --- --- --- --- ---
 
-    \t \t Finished training radical {rad}.
+    print(message.replace('xxx', 'Starting'))
+    
+    if rad not in trained_radicals or os.listdir(os.path.join('data_out', rad)) == []:
+        train_model(radical, warm, num_epochs, batch_size)
 
-     --- --- --- --- --- --- --- --- --- --- --- --- """
-
-    print(message.replace('Finished', 'Starting'))
-    if rad not in trained_radicals:
-        train_model(rad)
-    elif os.listdir(os.path.join('alexnet_data_out', rad)) == []:
-        train_model(rad)
-    elif os.listdir(os.path.join('alexnet_data_out', rad, 'models')) == []:
-        shutil.rmtree(os.path.join('alexnet_data_out', rad, 'models'))
-        shutil.rmtree(os.path.join('alexnet_data_out', rad, 'tblogs'))
-        train_model(rad)
+    elif os.listdir(os.path.join('data_out', rad, 'models')) == []:
+        shutil.rmtree(os.path.join('data_out', rad, 'models'))
+        shutil.rmtree(os.path.join('data_out', rad, 'tblogs'))
+        train_model(radical, warm, num_epochs, batch_size)
+   
     else:
         continue
 
-    print(message)
+    print(message.replace('xxx', 'Finished'))
         
 
 
