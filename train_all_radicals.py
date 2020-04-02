@@ -7,7 +7,7 @@ trained_radicals = os.listdir('data_out')
 e = RadicalOneHotEncoder(get_all_radicals())
 
 warm = True
-num_epochs = 4
+num_epochs = 3 
 batch_size = 512
 
 message = lambda radical, status: print(f"""
@@ -23,13 +23,12 @@ for radical in e.rads:
     
     if radical not in trained_radicals or os.listdir(os.path.join('data_out', radical)) == []:
         train_model(radical, warm, num_epochs, batch_size)
-
     elif os.listdir(os.path.join('data_out', radical, 'models')) == []:
         shutil.rmtree(os.path.join('data_out', radical, 'models'))
         shutil.rmtree(os.path.join('data_out', radical, 'tblogs'))
-        train_model(radical, warm, num_epochs, batch_size)
-   
+        train_model(radical, warm, num_epochs, batch_size) 
     else:
+        message(radical, 'Skipping')
         continue
 
     message(radical, 'Finished')

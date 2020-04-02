@@ -39,7 +39,7 @@ def evaluate_model(model, dataloader, test=False):
         preds = output > 0
 
         n_corr_classified += torch.sum(preds == classes).item()
-        n_images += len(batch)
+        n_images += len(imgs)
 
         n_corr_classified_and_class_instance += torch.sum((preds == classes) * (classes == 1)).item()
         n_class_instances += torch.sum(classes == 1).item()
@@ -143,6 +143,8 @@ def train_model(radical, warm, num_epochs, batch_size):
             loss.backward()
             optimizer.step()
             
+            validation_scores = []
+
             if total_steps % 10 == 0:
                 with torch.no_grad():
                     preds = output > 0
@@ -162,12 +164,12 @@ def train_model(radical, warm, num_epochs, batch_size):
                     tbwriter.add_scalar('accuracy', accuracy, total_steps)
                     tbwriter.add_scalar('recall', recall, total_steps)
 
-            if total_steps % 700 == 0:
+            if total_steps % 600 == 0:
                 with torch.no_grad():
                     print('Evaluating on validation set.')
                    
                     recall, accuracy = evaluate_model(model, test_dataloader, test=False)
-                    
+
                     print('Validation accuracy:', accuracy, '\tValidation recall:', recall)
 
                     tbwriter.add_scalar('valid_loss', loss.item(), total_steps)
@@ -183,9 +185,12 @@ def train_model(radical, warm, num_epochs, batch_size):
                             'model': model.state_dict()
                         }
                     torch.save(state, checkpoint_path)
+                    
+                    if accuracy > 0.9 and recall > 0.9:
+                        return True
 
                 # ------ adjusting learning rate ------
-
+                
                 lr_scheduler.step(accuracy)
             
             total_steps += 1
