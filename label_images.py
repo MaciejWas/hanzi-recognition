@@ -110,7 +110,6 @@ class RadicalOneHotEncoder:
 
     def encode(self, character):
         y = np.zeros(self.radicals_n, dtype=np.bool_)
-
         for radical in self.char_to_rads[character]:
             pos = np.argwhere(self.rads == radical)
             y[pos] = True
@@ -119,6 +118,9 @@ class RadicalOneHotEncoder:
     def partial_decode(self, label):
         mask = label == 1
         return self.rads[mask]
+
+    def get_rads(self, char):
+        return self.partial_decode(self.encode(char))
 
 info = """Usage:
 $ python3 create_labels.py test

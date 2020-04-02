@@ -46,7 +46,7 @@ if __name__ == '__main__':
             print(f'transforming {filepath}', end='\r')
             img = Image.open(filepath)
 
-            if np.array(img).shape != (110, 110)
+            if np.array(img).shape != (110, 110):
                 img_transformed = transform(img, width, height)
                 img_transformed.save(filepath)  
             elif np.array(img).mean() < 165: # Checks if image is inverted
