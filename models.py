@@ -15,21 +15,21 @@ class Model(nn.Module):
             nn.ReLU(),
             nn.LocalResponseNorm(size=5, alpha=0.0001, beta=0.75, k=2),
             nn.MaxPool2d(kernel_size=3, stride=2),
-            nn.Conv2d(128, 256, 3, padding=1), 
+            nn.Conv2d(128, 128, 3, padding=1), 
             nn.ReLU(),
-            nn.Conv2d(256, 128, 3, padding=1),
+            nn.Conv2d(128, 128, 3, padding=1),
             nn.ReLU(),
             nn.MaxPool2d(kernel_size=3, stride=1)
             )
         
         self.classifier = nn.Sequential(
             #nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=(128 * 10 * 10), out_features=2024),
+            nn.Linear(in_features=(128 * 10 * 10), out_features=1024),
             nn.ReLU(),
             nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=2024, out_features=2024),
+            nn.Linear(in_features=1024, out_features=1024),
             nn.ReLU(),
-            nn.Linear(in_features=2024, out_features=1),
+            nn.Linear(in_features=1024, out_features=1),
             #nn.Sigmoid()
         )
         self.init_bias()  # initialize bias

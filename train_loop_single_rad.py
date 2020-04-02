@@ -50,6 +50,8 @@ def evaluate_on_test_set(model, dataloader):
     return accuracy, recall
 
 def train_model(radical, warm, num_epochs, batch_size):
+    global device
+
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print('cuda:', torch.cuda.is_available())
 
@@ -124,7 +126,7 @@ def train_model(radical, warm, num_epochs, batch_size):
     print('Starting training...')
     
     max_steps = 2200
-    total_steps = 1
+    total_steps = 0
 
     for epoch in range(num_epochs):
         for batch in dataloader:
@@ -171,8 +173,8 @@ def train_model(radical, warm, num_epochs, batch_size):
                     n_class_instances = 0
 
                     for k, batch in enumerate(test_dataloader):
-                        print(f'Processing {k}-th batch. {k * batch_size} examples so far.', end='\r') 
-                        if k % 4 == 0: # I treat every 4th batch as test set
+                        print(f'Processing {k}-th batch.', end='\r') 
+                        if k % 4 != 0: # I treat every 4th batch as test set
                             continue
 
                         imgs = batch['img']
@@ -185,7 +187,7 @@ def train_model(radical, warm, num_epochs, batch_size):
                         preds = output > 0
 
                         n_corr_classified += torch.sum(preds == classes).item()
-                        n_images += len(batch)
+                        n_images += batch.shape[0]
 
                         n_corr_classified_and_class_instance += torch.sum((preds == classes) * (classes == 1)).item()
                         n_class_instances += torch.sum(classes == 1).item()

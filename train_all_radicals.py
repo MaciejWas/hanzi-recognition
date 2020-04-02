@@ -1,6 +1,6 @@
 import os
 from label_images import RadicalOneHotEncoder, get_all_radicals 
-from train_for_rad_detection import train_model
+from train_loop_single_rad import train_model
 import shutil
 
 trained_radicals = os.listdir('data_out')
