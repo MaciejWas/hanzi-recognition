@@ -11,9 +11,10 @@ import numpy as np
 from models import Model 
 
 
-def evaluate_on_test_set(model, dataloader):
-    """Batches with indices divisible by 4 are in validation set, the rest - in test set.
-    Because shuffle parameter in dataloader is set to False, validation and teest set will be the same for all radicals."""
+def evaluate_model(model, dataloader, test=False):
+    """Batches with even indices are in validation set, with odd - in test set.
+    Since shuffle parameter in dataloader is set to False, validation and test set will be the same every run."""
+    
     n_corr_classified = 0
     n_images = 0
 
@@ -21,9 +22,12 @@ def evaluate_on_test_set(model, dataloader):
     n_class_instances = 0
 
     for k, batch in enumerate(dataloader):
-
-        if k % 4 != 0: # I treat batches with even indices as test set
-            continue
+        if test:
+            if k % 2 == 0: # I treat batches with even indices as test set
+                continue
+        else:
+            if k % 2 != 0:
+                continue
 
         imgs = batch['img']
         classes = batch['label']
@@ -39,13 +43,9 @@ def evaluate_on_test_set(model, dataloader):
 
         n_corr_classified_and_class_instance += torch.sum((preds == classes) * (classes == 1)).item()
         n_class_instances += torch.sum(classes == 1).item()
-    try:
-        recall = n_corr_classified_and_class_instance / n_class_instances
-        accuracy = n_corr_classified / n_images
-
-    except ZeroDivisionError:
-        print(f'No examples of {radical} in testing data!')
-        recall = 1
+    
+    recall = n_corr_classified_and_class_instance / n_class_instances
+    accuracy = n_corr_classified / n_images
     
     return accuracy, recall
 
@@ -116,7 +116,7 @@ def train_model(radical, warm, num_epochs, batch_size):
    
     print('Optimizer created')
     
-    lr_scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=1, gamma=0.3)
+    lr_scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, factor=0.3, patience=4, verbose=True)
     criterion = nn.BCEWithLogitsLoss()
 
     print('LR Scheduler created')
@@ -126,7 +126,7 @@ def train_model(radical, warm, num_epochs, batch_size):
     print('Starting training...')
     
     max_steps = 2200
-    total_steps = 0
+    total_steps = 1
 
     for epoch in range(num_epochs):
         for batch in dataloader:
@@ -165,40 +165,8 @@ def train_model(radical, warm, num_epochs, batch_size):
             if total_steps % 700 == 0:
                 with torch.no_grad():
                     print('Evaluating on validation set.')
-                    
-                    n_corr_classified = 0
-                    n_images = 0
-                    
-                    n_corr_classified_and_class_instance = 0
-                    n_class_instances = 0
-
-                    for k, batch in enumerate(test_dataloader):
-                        print(f'Processing {k}-th batch.', end='\r') 
-                        if k % 4 != 0: # I treat every 4th batch as test set
-                            continue
-
-                        imgs = batch['img']
-                        classes = batch['label']
-
-                        imgs, classes = imgs.to(device), classes.to(device)
-                        output = model(imgs)
-                        classes = classes.type_as(output)
-                        
-                        preds = output > 0
-
-                        n_corr_classified += torch.sum(preds == classes).item()
-                        n_images += batch.shape[0]
-
-                        n_corr_classified_and_class_instance += torch.sum((preds == classes) * (classes == 1)).item()
-                        n_class_instances += torch.sum(classes == 1).item()
-
-                    try:
-                        recall = n_corr_classified_and_class_instance / n_class_instances
-                        accuracy = n_corr_classified / n_images
-
-                    except ZeroDivisionError:
-                        print(f'No examples of {radical} in testing data!')
-                        recall = 1
+                   
+                    recall, accuracy = evaluate_model(model, test_dataloader, test=False)
                     
                     print('Validation accuracy:', accuracy, '\tValidation recall:', recall)
 
@@ -206,28 +174,27 @@ def train_model(radical, warm, num_epochs, batch_size):
                     tbwriter.add_scalar('valid_accuracy', accuracy, total_steps)
                     tbwriter.add_scalar('valid_recall', recall, total_steps)
                         
-                    if recall >= 0.8 and accuracy >= 0.9:
-                        checkpoint_path = os.path.join(CHECKPOINT_DIR, f'model{radical}_at_state{total_steps}.pkl')
-                        state = {
-                            'test_set_results': evaluate_on_test_set(model, test_dataloader),
+                    checkpoint_path = os.path.join(CHECKPOINT_DIR, f'model{radical}_at_state{total_steps}.pkl')
+                    state = {
+                            'valid_set_results': (accuracy, recall),
                             'epoch': epoch,
                             'total_steps': total_steps,
                             'optimizer': optimizer.state_dict(),
                             'model': model.state_dict()
                         }
-                        torch.save(state, checkpoint_path)
-                        return True
+                    torch.save(state, checkpoint_path)
+
+                # ------ adjusting learning rate ------
+
+                lr_scheduler.step(accuracy)
             
             total_steps += 1
-
-        lr_scheduler.step()
-
         
     # ------ Saving model ------
 
     checkpoint_path = os.path.join(CHECKPOINT_DIR, f'model{radical}_at_state{total_steps}.pkl')
     state = {
-        'test_set_results': evaluate_on_test_set(model, test_dataloader),
+        'valid_set_results': evaluate_model(model, test_dataloader, test=False),
         'epoch': epoch,
         'total_steps': total_steps,
         'optimizer': optimizer.state_dict(),
