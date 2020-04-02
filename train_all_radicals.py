@@ -10,29 +10,29 @@ warm = True
 num_epochs = 4
 batch_size = 512
 
-message = """
+message = lambda radical, status: print(f"""
 --- --- --- --- --- --- --- --- --- --- --- ---
 
-\t \t xxx training radical {rad}.
+\t \t {status} training radical {radical}.
 
---- --- --- --- --- --- --- --- --- --- --- ---"""
+--- --- --- --- --- --- --- --- --- --- --- ---""")
 
-for rad in e.rads:
+for radical in e.rads:
 
-    print(message.replace('xxx', 'Starting'))
+    message(radical, 'Starting')
     
-    if rad not in trained_radicals or os.listdir(os.path.join('data_out', rad)) == []:
+    if radical not in trained_radicals or os.listdir(os.path.join('data_out', radical)) == []:
         train_model(radical, warm, num_epochs, batch_size)
 
-    elif os.listdir(os.path.join('data_out', rad, 'models')) == []:
-        shutil.rmtree(os.path.join('data_out', rad, 'models'))
-        shutil.rmtree(os.path.join('data_out', rad, 'tblogs'))
+    elif os.listdir(os.path.join('data_out', radical, 'models')) == []:
+        shutil.rmtree(os.path.join('data_out', radical, 'models'))
+        shutil.rmtree(os.path.join('data_out', radical, 'tblogs'))
         train_model(radical, warm, num_epochs, batch_size)
    
     else:
         continue
 
-    print(message.replace('xxx', 'Finished'))
+    message(radical, 'Finished')
         
 
 

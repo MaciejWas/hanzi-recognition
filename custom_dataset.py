@@ -5,12 +5,10 @@ from imbalanced import ImbalancedDatasetSampler
 from torch.nn.functional import interpolate
 from label_images import *
 import os
-from skimage import io 
+from cv2 import imread
 import pickle
 
 e = RadicalOneHotEncoder(get_all_radicals())
-
-
 
 class RadicalsDataset(Dataset):
     """Character to radicals dataset."""
@@ -53,7 +51,7 @@ class RadicalsDataset(Dataset):
     def __getitem__(self, idx):
         name = str(idx) + '.png' 
         char = self.file_to_char[name]
-        img = io.imread(os.path.join(self.directory, char, name))
+        img = imread(os.path.join(self.directory, char, name), 0)
         label = self.radical in e.partial_decode(e.encode(char))
 
         sample = {'char': char,
@@ -73,9 +71,7 @@ class CharacterTransform(object):
     def __call__(self, sample):
         img, label = sample['img'], sample['label']
         img = (img - 30) / 50
-       
         sample['img'] = from_numpy(img).float()
-        
         return sample
 
 if __name__ == '__main__':

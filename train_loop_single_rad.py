@@ -8,11 +8,11 @@ from torch.utils import data
 from tensorboardX import SummaryWriter
 from custom_dataset import RadicalsDataset, CharacterTransform, e, ImbalancedDatasetSampler
 import numpy as np
-from models import Model, balanced_loss 
+from models import Model 
 
 
 def evaluate_on_test_set(model, dataloader):
-    """Batches with even indices belong to validation set, odd - to test set.
+    """Batches with indices divisible by 4 are in validation set, the rest - in test set.
     Because shuffle parameter in dataloader is set to False, validation and teest set will be the same for all radicals."""
     n_corr_classified = 0
     n_images = 0
@@ -22,7 +22,7 @@ def evaluate_on_test_set(model, dataloader):
 
     for k, batch in enumerate(dataloader):
 
-        if k % 2 != 0: # I treat batches with even indices as test set
+        if k % 4 != 0: # I treat batches with even indices as test set
             continue
 
         imgs = batch['img']
@@ -49,7 +49,7 @@ def evaluate_on_test_set(model, dataloader):
     
     return accuracy, recall
 
-def train_model(radical, warm, num_epochs, batch_size, lr_decay):
+def train_model(radical, warm, num_epochs, batch_size):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print('cuda:', torch.cuda.is_available())
 
@@ -82,13 +82,13 @@ def train_model(radical, warm, num_epochs, batch_size, lr_decay):
     dataset = RadicalsDataset(
         train=True,
         transform=CharacterTransform(),
-        radical=rad,
+        radical=radical,
     )
 
     test_dataset = RadicalsDataset(
         train=False,
         transform=CharacterTransform(),
-        radical=rad,
+        radical=radical,
     )
     
     print('Dataset created')
@@ -160,7 +160,7 @@ def train_model(radical, warm, num_epochs, batch_size, lr_decay):
                     tbwriter.add_scalar('accuracy', accuracy, total_steps)
                     tbwriter.add_scalar('recall', recall, total_steps)
 
-            if total_steps % 700 == 0 or total_steps==1:
+            if total_steps % 700 == 0:
                 with torch.no_grad():
                     print('Evaluating on validation set.')
                     
@@ -171,8 +171,8 @@ def train_model(radical, warm, num_epochs, batch_size, lr_decay):
                     n_class_instances = 0
 
                     for k, batch in enumerate(test_dataloader):
-                        
-                        if k % 2 == 0: # I treat batches with even indices as test set
+                        print(f'Processing {k}-th batch. {k * batch_size} examples so far.', end='\r') 
+                        if k % 4 == 0: # I treat every 4th batch as test set
                             continue
 
                         imgs = batch['img']
@@ -204,10 +204,10 @@ def train_model(radical, warm, num_epochs, batch_size, lr_decay):
                     tbwriter.add_scalar('valid_accuracy', accuracy, total_steps)
                     tbwriter.add_scalar('valid_recall', recall, total_steps)
                         
-                    if recall >= 0.8 and accuracy >= 0.85:
+                    if recall >= 0.8 and accuracy >= 0.9:
                         checkpoint_path = os.path.join(CHECKPOINT_DIR, f'model{radical}_at_state{total_steps}.pkl')
                         state = {
-                            'test_set_results': evaluate_on_test_set(model, test_dataloader)
+                            'test_set_results': evaluate_on_test_set(model, test_dataloader),
                             'epoch': epoch,
                             'total_steps': total_steps,
                             'optimizer': optimizer.state_dict(),
@@ -225,7 +225,7 @@ def train_model(radical, warm, num_epochs, batch_size, lr_decay):
 
     checkpoint_path = os.path.join(CHECKPOINT_DIR, f'model{radical}_at_state{total_steps}.pkl')
     state = {
-        'test_set_results': evaluate_on_test_set(model, test_dataloader)
+        'test_set_results': evaluate_on_test_set(model, test_dataloader),
         'epoch': epoch,
         'total_steps': total_steps,
         'optimizer': optimizer.state_dict(),
@@ -234,4 +234,6 @@ def train_model(radical, warm, num_epochs, batch_size, lr_decay):
     torch.save(state, checkpoint_path)
     return True
 
-
+if __name__ == '__main__':
+    # test run
+    train_model('竹', True, 1, 512)
