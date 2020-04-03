@@ -7,8 +7,8 @@ trained_radicals = os.listdir('data_out')
 e = RadicalOneHotEncoder(get_all_radicals())
 
 warm = True
-num_epochs = 3 
-batch_size = 512
+num_epochs = 4 
+batch_size = 1024
 
 message = lambda radical, status: print(f"""
 --- --- --- --- --- --- --- --- --- --- --- ---

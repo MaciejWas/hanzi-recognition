@@ -21,6 +21,8 @@ def evaluate_model(model, dataloader, test=False):
     n_corr_classified_and_class_instance = 0
     n_class_instances = 0
 
+    loss = 0
+
     for k, batch in enumerate(dataloader):
         if test:
             if k % 2 == 0: # I treat batches with even indices as test set
@@ -35,9 +37,9 @@ def evaluate_model(model, dataloader, test=False):
         imgs, classes = imgs.to(device), classes.to(device)
         output = model(imgs)
         classes = classes.type_as(output)
-
+        loss += criterion(output, classes).item()
         preds = output > 0
-
+        
         n_corr_classified += torch.sum(preds == classes).item()
         n_images += len(imgs)
 
@@ -46,11 +48,11 @@ def evaluate_model(model, dataloader, test=False):
     
     recall = n_corr_classified_and_class_instance / n_class_instances
     accuracy = n_corr_classified / n_images
-    
-    return accuracy, recall
+    loss = loss / k
+    return accuracy, recall, loss
 
 def train_model(radical, warm, num_epochs, batch_size):
-    global device
+    global device, criterion
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print('cuda:', torch.cuda.is_available())
@@ -116,7 +118,7 @@ def train_model(radical, warm, num_epochs, batch_size):
    
     print('Optimizer created')
     
-    lr_scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, factor=0.3, patience=4, verbose=True)
+    lr_scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, factor=0.3, patience=3, verbose=True)
     criterion = nn.BCEWithLogitsLoss()
 
     print('LR Scheduler created')
@@ -138,8 +140,8 @@ def train_model(radical, warm, num_epochs, batch_size):
             classes = classes.type_as(output)
             
             loss = criterion(output, classes)
-            optimizer.zero_grad()
             
+            optimizer.zero_grad()
             loss.backward()
             optimizer.step()
             
@@ -168,7 +170,7 @@ def train_model(radical, warm, num_epochs, batch_size):
                 with torch.no_grad():
                     print('Evaluating on validation set.')
                    
-                    recall, accuracy = evaluate_model(model, test_dataloader, test=False)
+                    accuracy, recall, loss = evaluate_model(model, test_dataloader, test=False)
 
                     print('Validation accuracy:', accuracy, '\tValidation recall:', recall)
 
@@ -178,7 +180,7 @@ def train_model(radical, warm, num_epochs, batch_size):
                         
                     checkpoint_path = os.path.join(CHECKPOINT_DIR, f'model{radical}_at_state{total_steps}.pkl')
                     state = {
-                            'valid_set_results': (accuracy, recall),
+                            'valid_set_results': (accuracy, recall, loss),
                             'epoch': epoch,
                             'total_steps': total_steps,
                             'optimizer': optimizer.state_dict(),
