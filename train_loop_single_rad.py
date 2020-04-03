@@ -117,8 +117,8 @@ def train_model(radical, warm, num_epochs, batch_size):
     optimizer = optim.Adam(params=model.parameters(), lr=0.0002)
    
     print('Optimizer created')
-    
-    lr_scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, factor=0.3, patience=3, verbose=True)
+  
+    lr_scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, factor=0.1, patience=300, verbose=True)
     criterion = nn.BCEWithLogitsLoss()
 
     print('LR Scheduler created')
@@ -127,7 +127,6 @@ def train_model(radical, warm, num_epochs, batch_size):
 
     print('Starting training...')
     
-    max_steps = 2200
     total_steps = 1
 
     for epoch in range(num_epochs):
@@ -174,7 +173,7 @@ def train_model(radical, warm, num_epochs, batch_size):
 
                     print('Validation accuracy:', accuracy, '\tValidation recall:', recall)
 
-                    tbwriter.add_scalar('valid_loss', loss.item(), total_steps)
+                    tbwriter.add_scalar('valid_loss', loss, total_steps)
                     tbwriter.add_scalar('valid_accuracy', accuracy, total_steps)
                     tbwriter.add_scalar('valid_recall', recall, total_steps)
                         
@@ -188,12 +187,12 @@ def train_model(radical, warm, num_epochs, batch_size):
                         }
                     torch.save(state, checkpoint_path)
                     
-                    if accuracy > 0.9 and recall > 0.9:
+                    if accuracy > 0.95 and recall > 0.9:
                         return True
 
-                # ------ adjusting learning rate ------
-                
-                lr_scheduler.step(accuracy)
+            # ------ adjusting learning rate ------
+    
+            lr_scheduler.step(loss)
             
             total_steps += 1
         
