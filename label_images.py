@@ -156,4 +156,7 @@ if __name__ == '__main__':
             n = int(n)
             labels[n, :] = encoder.encode(dir)
         
-    np.savez(f'labels/{sys.argv[1]}_labels', labels)
+    np.savez(
+            os.path.join('labels','{sys.argv[1]}_labels'), 
+            labels
+            )

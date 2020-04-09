@@ -4,11 +4,11 @@ import torch
 from torch import nn
 import torch.optim as optim
 import torch.nn.functional as F
-from torch.utils import data
+from torch.utils.data import DataLoader
 from tensorboardX import SummaryWriter
-from custom_dataset import RadicalsDataset, CharacterTransform, e, ImbalancedDatasetSampler
+from custom_dataset import RadicalsDataset, CharacterTransform, ImbalancedDatasetSampler
 import numpy as np
-from models import Model 
+from models import Model
 
 
 def evaluate_model(model, dataloader, test=False):
@@ -18,8 +18,8 @@ def evaluate_model(model, dataloader, test=False):
     n_corr_classified = 0
     n_images = 0
 
-    n_corr_classified_and_class_instance = 0
-    n_class_instances = 0
+    n_true_positive = 0
+    n_class_1 = 0
 
     loss = 0
 
@@ -43,10 +43,10 @@ def evaluate_model(model, dataloader, test=False):
         n_corr_classified += torch.sum(preds == classes).item()
         n_images += len(imgs)
 
-        n_corr_classified_and_class_instance += torch.sum((preds == classes) * (classes == 1)).item()
-        n_class_instances += torch.sum(classes == 1).item()
+        n_true_positive += torch.sum((preds == classes) * (classes == 1)).item()
+        n_class_1 += torch.sum(classes == 1).item()
     
-    recall = n_corr_classified_and_class_instance / n_class_instances
+    recall = n_true_positive / n_class_1
     accuracy = n_corr_classified / n_images
     loss = loss / k
     return accuracy, recall, loss
@@ -66,13 +66,15 @@ def train_model(radical, warm, num_epochs, batch_size):
     os.makedirs(OUTPUT_DIR, exist_ok=True) 
 
     tbwriter = SummaryWriter(log_dir=LOG_DIR)
+    
     print('TensorboardX summary writer created')
 
     model = Model()
     
     if warm:
         try:
-            model.load_state_dict(torch.load('data_out/火/models/model火_at_state16.pkl'), strict=False)
+            model.load_state_dict(torch.load(
+                os.path.join('data_out','火','models','model火_at_state16.pkl')), strict=False)
             print('Warm start with 火-model.')
         except:
             print('Unable to load previous model for warm start. Continuing with random weights.')
@@ -80,8 +82,6 @@ def train_model(radical, warm, num_epochs, batch_size):
     model.to(device)
 
     print('Neural network created')
-    
-    # ------  Loading datasets   ------
     
     dataset = RadicalsDataset(
         train=True,
@@ -122,9 +122,6 @@ def train_model(radical, warm, num_epochs, batch_size):
     criterion = nn.BCEWithLogitsLoss()
 
     print('LR Scheduler created')
-
-    # ------  Training loop   ------
-
     print('Starting training...')
     
     total_steps = 1
