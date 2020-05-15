@@ -15,6 +15,8 @@ Below is a chart of accuracy and recall on training data over number of batches.
 ![alt text](readme_images/accuracy.svg "accuracy score")
 #### Recall
 ![alt text](readme_images/recall.svg "recall score")
+#### Test Accuracy
+![alt text](readme_images/test_accuracy.svg "recall score")
 
 ## Licensed modules
 I am using a modified version of **PyCasia** python module:
